@@ -1,0 +1,7 @@
+<resources>
+    <string name="app_name">WheelyCool</string>
+    <string name="done_button">Done</string>
+    <string name="add_button">Add Item</string>
+    <string name="spin_button">Spin the Wheel!</string>
+    <string name="instructions">Add some options for the wheel!</string>
+</resources>
