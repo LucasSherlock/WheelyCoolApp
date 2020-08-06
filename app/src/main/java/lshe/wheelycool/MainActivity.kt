@@ -1,17 +1,19 @@
 package lshe.wheelycool
 
+import android.content.Context
 import android.content.Intent
+import android.content.SharedPreferences
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.os.Parcelable
+import android.preference.PreferenceManager
 import android.util.Log
-import android.view.LayoutInflater
-import android.view.View
-import android.view.ViewGroup
 import android.widget.*
 import androidx.appcompat.app.AlertDialog
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import com.google.gson.Gson
+import com.google.gson.reflect.TypeToken
 import kotlinx.android.parcel.Parcelize
 
 /**
@@ -25,30 +27,37 @@ class MainActivity : AppCompatActivity() {
     private lateinit var viewAdapter : ItemListAdapter
     private lateinit var viewManager: RecyclerView.LayoutManager
     private var id = 0 // tracks id of ListItems
+    private val SAVED_ITEMS = "saved_items"
 
 
-    private val itemAction = object : ItemView.OnItemAction { // Implement Delete functionality
-        override fun onDeleteClicked(item: Item) {
-            val newList = ArrayList<Item>()
-            newList.addAll(items)
-            newList.remove(item)
-            viewAdapter.submitList(newList)
-            items = newList
-        }
-    }
+
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
+
+
         viewManager = LinearLayoutManager(
             this, LinearLayoutManager.VERTICAL, false)
         viewAdapter = ItemListAdapter(itemAction)
+
 
         // Setup RecyclerView
         recyclerView = findViewById<RecyclerView>(R.id.recycler_view).apply {
             layoutManager = viewManager
             adapter = viewAdapter
+        }
+
+        val sharedPrefs = getPreferences(Context.MODE_PRIVATE)
+
+        if (sharedPrefs.contains(SAVED_ITEMS)) {
+            Log.d("DEBUG", "has items")
+            val gson = Gson()
+            var json = sharedPrefs.getString(SAVED_ITEMS, "")
+            val itemType = object : TypeToken<List<Item>>() {}.type
+            items = gson.fromJson<List<Item>>(json, itemType) as ArrayList<Item>
+            viewAdapter.submitList(items)
         }
 
         // Assign buttons
@@ -58,6 +67,17 @@ class MainActivity : AppCompatActivity() {
 
         var addButton = findViewById<Button>(R.id.add_button)
         addButton.setOnClickListener{ getInput() }
+    }
+
+    private val itemAction = object : ItemView.OnItemAction { // Implement Delete functionality
+        override fun onDeleteClicked(item: Item) {
+            val newList = ArrayList<Item>()
+            newList.addAll(items)
+            newList.remove(item)
+            viewAdapter.submitList(newList)
+            items = newList
+            saveItems()
+        }
     }
 
     /**
@@ -81,7 +101,6 @@ class MainActivity : AppCompatActivity() {
         val input = EditText(this)
         builder.setView(input)
 
-
         builder.setPositiveButton("Add"){
                 _,_ ->
             val newList = ArrayList<Item>()
@@ -90,6 +109,7 @@ class MainActivity : AppCompatActivity() {
             id++
             viewAdapter.submitList(newList)
             items = newList
+            saveItems()
         }
 
         builder.setNegativeButton("Cancel") {
@@ -97,8 +117,20 @@ class MainActivity : AppCompatActivity() {
         }
         val alertDialog = builder.create()
         alertDialog.show()
+    }
 
-
+    fun saveItems() {
+        val sharedPrefs = getPreferences(Context.MODE_PRIVATE)
+        val editor = sharedPrefs.edit()
+        val gson = Gson()
+        var json = gson.toJson(items)
+        editor.putString(SAVED_ITEMS, json)
+        editor.commit()
+        if (sharedPrefs.contains(SAVED_ITEMS)) {
+            Log.d("DEBUG", "has items")
+        } else {
+            Log.d("DEBUG", "has no items")
+        }
     }
 
 
